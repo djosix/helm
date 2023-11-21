@@ -182,6 +182,28 @@ func (e Engine) initFunMap(t *template.Template, referenceTpls map[string]render
 		return val, nil
 	}
 
+	// Add the `ensure` function here so we can use lintMode
+	funcMap["ensure"] = func(val interface{}) (interface{}, error) {
+		if val == nil {
+			if e.LintMode {
+				// Don't fail on missing required values when linting
+				log.Printf("[INFO] Missing required value")
+				return "", nil
+			}
+			return val, errors.Errorf("missing required value")
+		} else if _, ok := val.(string); ok {
+			if val == "" {
+				if e.LintMode {
+					// Don't fail on missing required values when linting
+					log.Printf("[INFO] Missing required value")
+					return "", nil
+				}
+				return val, errors.Errorf("missing required value")
+			}
+		}
+		return val, nil
+	}
+
 	// Override sprig fail function for linting and wrapping message
 	funcMap["fail"] = func(msg string) (string, error) {
 		if e.LintMode {
